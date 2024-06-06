@@ -5,10 +5,23 @@ import Modal from "../UI/Modal";
 import Input from "../UI/Input";
 import Button from "../UI/Button";
 import { currencyFomatter } from "../util/fomatting";
+import useHttp from "../hooks/useHttp";
+import Error from "./Error";
+
+const requestConfig = {
+    method: 'POST',
+    headers: {
+        'Content-Type' : 'application/json'
+    }
+}
 
 export default function Checkout() {
     const cartCtx= useContext(CartContext)
     const UserProgressCtx = useContext(UserProgressContext)
+
+    const {data, isLoading: isSending, error, sendRequest, clearData} = useHttp(
+        'http://localhost:3000/orders', requestConfig
+    )
 
     // 장바구니 총 금액 계산
     const cartTotal = cartCtx.items.reduce(
@@ -20,28 +33,55 @@ export default function Checkout() {
         UserProgressCtx.hideCheckOut()
     }
 
+    function handleFinish() {
+        UserProgressCtx.hideCheckOut()
+        cartCtx.clearCart()
+        clearData()
+    }
+
     function handleSubmit(e) {
         e.preventDefault()
 
         const fd = new FormData(e.target)
         const customerData = Object.fromEntries(fd.entries())// formdata 객체로 변환
 
-        fetch('http://localhost:3000/orders', {
-            method: 'POST',
-            headers: {
-                'Content-Type' : 'application/json'
-            },
-            body: JSON.stringify({
-                order: {
-                    items: cartCtx.items,
-                    customer: customerData
-                }
-            })
-        })
+        sendRequest(JSON.stringify({
+            order: {
+                items: cartCtx.items,
+                customer: customerData
+            }
+        }))
     }
 
+    let actions = (
+        <>
+            <Button 
+                type="button"
+                onClick={handleClose}
+                onClose={handleClose}
+                textOnly
+            >닫기</Button>
+            <Button>주문서 제출</Button>
+        </>
+    )
+
+    if(isSending) {
+        actions = <span>주문 데이터 전송 중...</span>
+    }
+
+    if(data && !error) {
+        return (
+        <Modal open={UserProgressCtx.progress === 'checkout'} onClose={handleFinish}>
+            <h2>성공!</h2>
+            <p>주문이 성공적으로 진행됐습니다</p>
+            <p className="modal-actions">
+                <Button onClick={handleFinish}>OK</Button>  
+            </p>
+        </Modal>
+        )
+    }
     return (
-        <Modal open={UserProgressCtx.progress === 'checkout'}>
+        <Modal open={UserProgressCtx.progress === 'checkout'} onClose={handleClose}>
             <form onSubmit={handleSubmit}>
                 <h2>결제</h2>
                 <p>총 금액: {currencyFomatter.format(cartTotal)}</p>
@@ -52,15 +92,10 @@ export default function Checkout() {
                     <Input label="Postal Code" type="text" id="postal-code"/>
                     <Input label="City" type="text" id="city"/>
                 </div>
-                <p className="modal-actions">
-                    <Button 
-                        type="button"
-                        onClick={handleClose}
-                        onClose={handleClose}
-                        textOnly
-                    >닫기</Button>
-                    <Button>주문서 제출</Button>
-                </p>
+                {
+                    error && <Error title="주문 실패했습니다" message={error}/>
+                }
+                <p className="modal-actions">{actions}</p>
             </form>
         </Modal>
     )

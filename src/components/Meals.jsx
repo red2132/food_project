@@ -1,19 +1,18 @@
-import { useState, useEffect } from "react"
+import useHttp from "../hooks/useHttp"
+import Error from "./Error"
 import MealItem from "./MealItem"
 
-export default function Meals() {
-    const [loadedMeals, setLoadedMeals] = useState([])
+const requestConfig = {}
 
-    useEffect(() => {
-        async function fetchMeals() {
-            const res = await fetch('http://localhost:3000/meals')
-    
-            const meals = await res.json()
-            setLoadedMeals(meals)
-        }
-        fetchMeals()
-    }, []
-    )
+export default function Meals() {
+    const {data: loadedMeals, isLoading, error } = useHttp('http://localhost:3000/meals', requestConfig, [])
+    if(isLoading) {
+        return <p className="center">데이터를 가져오는 중입니다...</p>
+    }
+
+    if(error) {
+        return <Error title="메뉴를 불러올 수 없었습니다" message={error}/>
+    }
     return (
         <ul id="meals">
             {
