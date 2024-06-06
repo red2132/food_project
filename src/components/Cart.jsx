@@ -17,11 +17,21 @@ export default function Cart() {
          0
     )
 
+    // 장바구니 닫기
     function handleCloseCart() {
         UserProgressCtx.hideCart()
     }
+
+    // 결제창 오픈
+    function handleGoToCheckout() {
+        UserProgressCtx.showCheckOut()
+    }
     return (
-        <Modal className="cart" open={UserProgressCtx.progress === 'cart'}>
+        <Modal 
+            className="cart"
+            open={UserProgressCtx.progress === 'cart'}
+            onClose={UserProgressCtx.progress === 'cart' ? handleCloseCart : null} //esc키 눌렀을 때 모달창 닫기 context에 전달
+        >
             <h2>장바구니</h2>
             <ul>
                 {
@@ -40,7 +50,7 @@ export default function Cart() {
             <p className="cart-total">{currencyFomatter.format(cartTotal)}</p>
             <p className="modal-actions">
                 <Button textOnly onClick={handleCloseCart}>닫기</Button>
-                <Button onClick={handleCloseCart}>결제하기</Button>
+                {cartCtx.items.length > 0 && <Button onClick={handleGoToCheckout}>결제하기</Button>}
             </p>
         </Modal>
     )
